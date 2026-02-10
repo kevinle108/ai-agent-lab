@@ -1,43 +1,46 @@
 
 
 using System;
+using System.Collections.Generic;
+using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
 
-using Microsoft.Extensions.Configuration;
 
-// Build configuration from environment variables and user secrets
-var builder = new ConfigurationBuilder()
-	.AddEnvironmentVariables()
-	.AddUserSecrets(typeof(Program).Assembly, optional: true);
 
-var configuration = builder.Build();
+var endpoint = "https://models.github.ai/inference";
 
-// Try to get the GITHUB_TOKEN from configuration
-var githubToken = configuration["GITHUB_TOKEN"];
-
-if (string.IsNullOrWhiteSpace(githubToken))
+var credential = System.Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+if (string.IsNullOrEmpty(credential))
 {
-	Console.ForegroundColor = ConsoleColor.Red;
-	Console.WriteLine("❌ GITHUB_TOKEN not found in environment variables or user secrets.");
-	Console.ResetColor();
-	Console.WriteLine("Please set the token using an environment variable or 'dotnet user-secrets set GITHUB_TOKEN <token>' 🛠️");
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("Error: The GITHUB_TOKEN environment variable is not set. Please set it to a valid GitHub token and try again.");
+    Console.ResetColor();
+    return;
 }
 
-else
+var model = "openai/gpt-4o";
+
+var openAIOptions = new OpenAIClientOptions()
 {
-	Console.ForegroundColor = ConsoleColor.Green;
-	Console.WriteLine("✅ GITHUB_TOKEN loaded successfully! 🔑");
-	Console.ResetColor();
+    Endpoint = new Uri(endpoint)
 
-	// Create and configure Semantic Kernel
-	var kernelBuilder = Microsoft.SemanticKernel.Kernel.CreateBuilder();
-	kernelBuilder.AddOpenAIChatCompletion(
-		modelId: "openai/gpt-4o",
-		endpoint: "https://models.github.ai/inference",
-		apiKey: githubToken
-	);
+};
 
-	// Build the Semantic Kernel instance
-	var kernel = kernelBuilder.Build();
+var client = new ChatClient(model, new ApiKeyCredential(credential), openAIOptions);
 
-	Console.WriteLine("🤖 Semantic Kernel configured to use GitHub Models endpoint!");
-}
+List<ChatMessage> messages = new List<ChatMessage>()
+{
+    new SystemChatMessage("You are a helpful assistant."),
+    new UserChatMessage("What is the capital of France?"),
+};
+
+var requestOptions = new ChatCompletionOptions()
+{
+    Temperature = 1.0f,
+    TopP = 1.0f,
+    MaxOutputTokenCount = 1000
+};
+
+var response = client.CompleteChat(messages, requestOptions);
+System.Console.WriteLine(response.Value.Content[0].Text);
