@@ -35,11 +35,12 @@ class Program
         Console.WriteLine(githubToken);
         Console.ResetColor();
 
-        // Create and configure Semantic Kernel
+        // Create and configure Semantic Kernel for GitHub Models
         var kernelBuilder = Kernel.CreateBuilder();
         kernelBuilder.AddOpenAIChatCompletion(
             modelId: "gpt-4o",
-            apiKey: githubToken
+            apiKey: githubToken,
+            endpoint: "https://models.github.ai/inference"
         );
 
         // Build the Semantic Kernel instance
