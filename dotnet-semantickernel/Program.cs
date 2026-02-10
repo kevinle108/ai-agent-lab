@@ -1,10 +1,9 @@
-#pragma warning disable SKEXP0010
+using System;
+using System.Collections.Generic;
 using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.SemanticKernel;
 using DotNetSemanticKernel;
 
 // Build configuration from appsettings and user secrets
@@ -39,45 +38,29 @@ Console.WriteLine($"📍 Using endpoint: {endpoint}");
 Console.WriteLine($"🔑 Token length: {githubToken.Length} characters");
 Console.WriteLine($"🤖 Model: {model}");
 
+// --- OpenAI SDK chat interaction ---
+var openAIOptions = new OpenAIClientOptions() { Endpoint = new Uri(endpoint) };
+var client = new ChatClient(model, new ApiKeyCredential(githubToken), openAIOptions);
+
+var messages = new List<ChatMessage>()
+{
+    new SystemChatMessage("You are a helpful AI assistant."),
+    new UserChatMessage("What is 25 * 4 + 10?"),
+};
+
+var requestOptions = new ChatCompletionOptions()
+{
+    Temperature = 1.0f,
+    TopP = 1.0f,
+    MaxOutputTokenCount = 1000
+};
+
+Console.WriteLine($"\n💬 User: What is 25 * 4 + 10?");
+
 try
 {
-    // Create Semantic Kernel builder
-    var builder = Kernel.CreateBuilder();
-    
-    // Add OpenAI chat completion service with GitHub Models endpoint
-    builder.AddOpenAIChatCompletion(model, endpoint, githubToken);
-    
-    // Register the MathPlugin with the kernel builder
-    builder.Plugins.AddFromType<MathPlugin>();
-    
-    // Build the kernel
-    var kernel = builder.Build();
-
-    // Create chat messages with system prompt
-    var messages = new List<ChatMessage>()
-    {
-        new SystemChatMessage("You are a helpful AI assistant."),
-        new UserChatMessage("What is 25 * 4 + 10?"),
-    };
-
-    Console.WriteLine($"\n💬 User: What is 25 * 4 + 10?");
-
-    // Configure request options
-    var requestOptions = new ChatCompletionOptions()
-    {
-        Temperature = 1.0f,
-        TopP = 1.0f,
-        MaxOutputTokenCount = 1000
-    };
-
-    // Create ChatClient for direct API calls
-    var client = new ChatClient(model, new ApiKeyCredential(githubToken), new OpenAIClientOptions() { Endpoint = new Uri(endpoint) });
-
-    // Get response from GitHub Models
     var response = client.CompleteChat(messages, requestOptions);
-
-    Console.WriteLine($"🤖 Assistant: {response.Value.Content[0].Text}");
-    Console.WriteLine("\n✅ Semantic Kernel AI agent completed successfully!");
+    Console.WriteLine($"🤖 Assistant (OpenAI SDK): {response.Value.Content[0].Text}");
 }
 catch (Exception ex)
 {
@@ -92,3 +75,10 @@ catch (Exception ex)
     Console.WriteLine();
     Console.WriteLine($"   Full error: {ex}");
 }
+
+// --- Direct MathPlugin usage ---
+var mathPlugin = new MathPlugin();
+string mathExpression = "25 * 4 + 10";
+string mathResult = mathPlugin.Calculate(mathExpression);
+Console.WriteLine($"\n🧮 MathPlugin: {mathExpression} = {mathResult}");
+Console.WriteLine("\n✅ Completed OpenAI SDK chat and MathPlugin tool use demo.");
