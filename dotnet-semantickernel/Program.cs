@@ -4,6 +4,8 @@ using OpenAI.Chat;
 using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.SemanticKernel;
+using DotNetSemanticKernel;
 
 // Build configuration from appsettings and user secrets
 var configuration = new ConfigurationBuilder()
@@ -39,13 +41,17 @@ Console.WriteLine($"🤖 Model: {model}");
 
 try
 {
-    // Create OpenAI client with GitHub Models endpoint
-    var openAIOptions = new OpenAIClientOptions()
-    {
-        Endpoint = new Uri(endpoint)
-    };
-
-    var client = new ChatClient(model, new ApiKeyCredential(githubToken), openAIOptions);
+    // Create Semantic Kernel builder
+    var builder = Kernel.CreateBuilder();
+    
+    // Add OpenAI chat completion service with GitHub Models endpoint
+    builder.AddOpenAIChatCompletion(model, endpoint, githubToken);
+    
+    // Register the MathPlugin with the kernel builder
+    builder.Plugins.AddFromType<MathPlugin>();
+    
+    // Build the kernel
+    var kernel = builder.Build();
 
     // Create chat messages with system prompt
     var messages = new List<ChatMessage>()
@@ -63,6 +69,9 @@ try
         TopP = 1.0f,
         MaxOutputTokenCount = 1000
     };
+
+    // Create ChatClient for direct API calls
+    var client = new ChatClient(model, new ApiKeyCredential(githubToken), new OpenAIClientOptions() { Endpoint = new Uri(endpoint) });
 
     // Get response from GitHub Models
     var response = client.CompleteChat(messages, requestOptions);
