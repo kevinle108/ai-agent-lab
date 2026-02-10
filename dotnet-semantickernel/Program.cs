@@ -1,3 +1,4 @@
+#pragma warning disable SKEXP0010
 using Microsoft.SemanticKernel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
@@ -26,11 +27,15 @@ if (string.IsNullOrWhiteSpace(githubToken))
 
 Console.WriteLine("✅ GitHub token loaded successfully!");
 
-// Initialize Semantic Kernel
+// Initialize Semantic Kernel with GitHub Models
 var builder = Kernel.CreateBuilder();
 
-// TODO: Configure AI service(s)
-// Example: builder.AddOpenAIChatCompletion("model-id", "api-key");
+// Configure OpenAI Chat Completion with GitHub Models endpoint
+builder.AddOpenAIChatCompletion(
+    modelId: "gpt-4o",
+    apiKey: githubToken,
+    endpoint: new Uri("https://models.github.ai/inference")
+);
 
 var kernel = builder.Build();
 
