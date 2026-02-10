@@ -8,6 +8,8 @@
     <UserSecretsId>8196071b-89c5-4775-bfac-09512a70ebec</UserSecretsId>
   </PropertyGroup>
 
+
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0" />
     <PackageReference Include="OpenAI" Version="2.8.0" />
