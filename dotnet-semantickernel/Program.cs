@@ -1,3 +1,5 @@
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 
 using System;
@@ -29,11 +31,12 @@ else
 	Console.ResetColor();
 
 	// Create and configure Semantic Kernel
-	var kernelBuilder = Microsoft.SemanticKernel.Kernel.CreateBuilder();
+	var kernelBuilder = Kernel.CreateBuilder();
+
 	kernelBuilder.AddOpenAIChatCompletion(
 		modelId: "openai/gpt-4o",
-		endpoint: "https://models.github.ai/inference",
-		apiKey: githubToken
+		apiKey: githubToken,
+		endpoint: "https://models.github.ai/inference"
 	);
 
 	// Build the Semantic Kernel instance
