@@ -21,9 +21,21 @@ if (string.IsNullOrWhiteSpace(githubToken))
 	Console.ResetColor();
 	Console.WriteLine("Please set the token using an environment variable or 'dotnet user-secrets set GITHUB_TOKEN <token>' 🛠️");
 }
+
 else
 {
 	Console.ForegroundColor = ConsoleColor.Green;
 	Console.WriteLine("✅ GITHUB_TOKEN loaded successfully! 🔑");
 	Console.ResetColor();
+
+	// Create and configure Semantic Kernel
+	var kernelBuilder = Microsoft.SemanticKernel.Kernel.CreateBuilder();
+	kernelBuilder.AddOpenAIChatCompletion(
+		modelId: "gpt-4",
+		endpoint: "https://models.github.ai/inference",
+		apiKey: githubToken
+	);
+	var kernel = kernelBuilder.Build();
+
+	Console.WriteLine("🤖 Semantic Kernel configured to use GitHub Models endpoint!");
 }
