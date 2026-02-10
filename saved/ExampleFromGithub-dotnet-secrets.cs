@@ -1,6 +1,3 @@
-
-
-
 using System;
 using System.Collections.Generic;
 using OpenAI;
@@ -8,8 +5,6 @@ using OpenAI.Chat;
 using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using System.IO;
-
-
 
 var endpoint = "https://models.github.ai/inference";
 
