@@ -1,5 +1,7 @@
 #pragma warning disable SKEXP0010
-using Microsoft.SemanticKernel;
+using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 
@@ -27,18 +29,57 @@ if (string.IsNullOrWhiteSpace(githubToken))
 
 Console.WriteLine("✅ GitHub token loaded successfully!");
 
-// Initialize Semantic Kernel with GitHub Models
-var builder = Kernel.CreateBuilder();
+// GitHub Models endpoint
+var endpoint = configuration["GITHUB_MODELS_ENDPOINT"] ?? "https://models.github.ai/inference";
+var model = "openai/gpt-4o";
 
-// Configure OpenAI Chat Completion with GitHub Models endpoint
-builder.AddOpenAIChatCompletion(
-    modelId: "gpt-4o",
-    apiKey: githubToken,
-    endpoint: new Uri("https://models.github.ai/inference")
-);
+Console.WriteLine($"📍 Using endpoint: {endpoint}");
+Console.WriteLine($"🔑 Token length: {githubToken.Length} characters");
+Console.WriteLine($"🤖 Model: {model}");
 
-var kernel = builder.Build();
+try
+{
+    // Create OpenAI client with GitHub Models endpoint
+    var openAIOptions = new OpenAIClientOptions()
+    {
+        Endpoint = new Uri(endpoint)
+    };
 
-// TODO: Add skills/plugins and run your AI agent logic
+    var client = new ChatClient(model, new ApiKeyCredential(githubToken), openAIOptions);
 
-Console.WriteLine("✅ Semantic Kernel AI agent initialized successfully!");
+    // Create chat messages with system prompt
+    var messages = new List<ChatMessage>()
+    {
+        new SystemChatMessage("You are a helpful AI assistant."),
+        new UserChatMessage("What is 25 * 4 + 10?"),
+    };
+
+    Console.WriteLine($"\n💬 User: What is 25 * 4 + 10?");
+
+    // Configure request options
+    var requestOptions = new ChatCompletionOptions()
+    {
+        Temperature = 1.0f,
+        TopP = 1.0f,
+        MaxOutputTokenCount = 1000
+    };
+
+    // Get response from GitHub Models
+    var response = client.CompleteChat(messages, requestOptions);
+
+    Console.WriteLine($"🤖 Assistant: {response.Value.Content[0].Text}");
+    Console.WriteLine("\n✅ Semantic Kernel AI agent completed successfully!");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"\n❌ Error communicating with GitHub Models");
+    Console.WriteLine($"   Exception: {ex.GetType().Name}");
+    Console.WriteLine($"   Message: {ex.Message}");
+    Console.WriteLine();
+    Console.WriteLine("💡 Troubleshooting:");
+    Console.WriteLine("   1. Verify GitHub token is valid");
+    Console.WriteLine("   2. Check endpoint: https://models.github.ai/inference");
+    Console.WriteLine("   3. Ensure token has GitHub Models access");
+    Console.WriteLine();
+    Console.WriteLine($"   Full error: {ex}");
+}
