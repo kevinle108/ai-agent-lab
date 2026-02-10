@@ -35,6 +35,8 @@ else
 		endpoint: "https://models.github.ai/inference",
 		apiKey: githubToken
 	);
+
+	// Build the Semantic Kernel instance
 	var kernel = kernelBuilder.Build();
 
 	Console.WriteLine("🤖 Semantic Kernel configured to use GitHub Models endpoint!");
