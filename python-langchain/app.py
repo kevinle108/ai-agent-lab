@@ -21,6 +21,18 @@ def calculator(expression: str) -> str:
         return f"Error: {e}"
 
 
+
+def reverse_string(s: str) -> str:
+    """Reverses the input string and returns it.
+    
+    Args:
+        s: The string to reverse.
+    
+    Returns:
+        The reversed string.
+    """
+    return s[::-1]
+
 def get_current_time(input_str: str) -> str:
     """Returns the current date and time as a formatted string.
     
@@ -51,63 +63,66 @@ def main():
     )
     # tools available to the agent
     tools = [
-        # Tool(
-        #     name="Calculator",
-        #     func=calculator,
-        #     description=(
-        #         "Evaluate mathematical expressions. Use this tool when the agent needs to "
-        #         "perform arithmetic or numeric calculations exactly (e.g., '25 * 4 + 10'). "
-        #         "Input should be a plain math expression. Returns the computed result as a string."
-        #     ),
-        # ),
-        # Tool(
-        #     name="get_current_time",
-        #     func=get_current_time,
-        #     description=(
-        #         "Get the current date and time. Use this tool when the agent needs to know "
-        #         "what time it is right now. Returns the current date and time in YYYY-MM-DD HH:MM:SS format."
-        #     ),
-        # )
+        Tool(
+            name="Calculator",
+            func=calculator,
+            description=(
+                "Evaluate mathematical expressions. Use this tool when the agent needs to "
+                "perform arithmetic or numeric calculations exactly (e.g., '25 * 4 + 10'). "
+                "Input should be a plain math expression. Returns the computed result as a string."
+            ),
+        ),
+        Tool(
+            name="get_current_time",
+            func=get_current_time,
+            description=(
+                "Get the current date and time. Use this tool when the agent needs to know "
+                "what time it is right now. Returns the current date and time in YYYY-MM-DD HH:MM:SS format."
+            ),
+        ),
+        Tool(
+            name="reverse_string",
+            func=reverse_string,
+            description="Reverses a string. Input should be a single string."
+        )
     ]
     print("✅ ChatOpenAI client initialized.")
     print("🚀 Starting app — environment loaded.")
-    # simple test invocation (no tools)
-    llm = chat
-    test_query = "Reverse the string 'Hello World'"
-    print(f"💬 Query: {test_query}")
-    try:
-        response = llm.invoke(test_query)
-        content = getattr(response, "content", response)
-        print("📝 Response:", content)
-    except Exception as e:
-        print("⚠️ LLM invocation failed:", e)
-
     # create an agent with the LLM and tools
+    llm = chat
     try:
-        # Create the agent (returns a CompiledStateGraph)
         agent_executor = create_agent(
             llm,
             tools=tools,
-            debug=True,
+            # system_message="You are a professional and succinct AI assistant. Always answer clearly and concisely.",
+            debug=False,
         )
         print("🧭 Agent initialized.")
 
-        # Invoke the agent with messages format (required for LangGraph agents)
-        print("🔁 Invoking agent with query...")
-        agent_result = agent_executor.invoke({"messages": [HumanMessage(content=test_query)]})
-        
-        # Extract the final response from messages
-        messages = agent_result.get("messages", [])
-        if messages:
-            # Get the last message (which should be the final response)
-            final_message = messages[-1]
-            output = getattr(final_message, "content", str(final_message))
-        else:
-            output = agent_result
-
-        print("🔎 Agent output:", output)
+        test_queries = [
+            "What time is it right now?",
+            "What is 25 * 4 + 10?",
+            "Reverse the string 'Hello World'"
+        ]
+        print("\nRunning example queries:\n")
+        for query in test_queries:
+            print("📝 Query:", query)
+            print("─" * 50)
+            try:
+                agent_result = agent_executor.invoke({"messages": [HumanMessage(content=query)]})
+                messages = agent_result.get("messages", [])
+                if messages:
+                    final_message = messages[-1]
+                    output = getattr(final_message, "content", str(final_message))
+                else:
+                    output = agent_result
+                print("✅ Result:", output)
+            except Exception as e:
+                print(f"❌ Error: {e}")
+            print("\n")
+        print("🎉 Agent demo complete!\n")
     except Exception as e:
-        print("⚠️ Agent invocation failed:", e)
+        print("⚠️ Agent initialization or invocation failed:", e)
 
 
 if __name__ == "__main__":
