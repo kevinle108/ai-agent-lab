@@ -1,84 +1,96 @@
-using System;
-using System.Collections.Generic;
-using OpenAI;
-using OpenAI.Chat;
-using System.ClientModel;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.Configuration;
-using DotNetSemanticKernel;
 
-// Build configuration from appsettings and user secrets
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddUserSecrets("dotnet-semantickernel-secrets")
-    .AddEnvironmentVariables()
-    .Build();
-
-// Load and validate GitHub token
-var githubToken = configuration["GITHUB_TOKEN"];
-
-if (string.IsNullOrWhiteSpace(githubToken))
+namespace SemanticKernelAgent
 {
-    Console.WriteLine("❌ Error: GITHUB_TOKEN not found!");
-    Console.WriteLine();
-    Console.WriteLine("📋 To configure your GitHub token:");
-    Console.WriteLine("   1. Set environment variable: set GITHUB_TOKEN=your_token_here");
-    Console.WriteLine("   2. Or use user secrets: dotnet user-secrets set GITHUB_TOKEN \"your_token_here\"");
-    Console.WriteLine();
-    Console.WriteLine("💡 Get a token at: https://github.com/settings/tokens");
-    return;
+    class Program
+    {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine("🤖 C# Semantic Kernel Agent Starting...\n");
+
+            // Load configuration from environment variables
+            var configuration = new ConfigurationBuilder()
+                .AddEnvironmentVariables()
+                .AddUserSecrets<Program>()
+                .Build();
+
+            var githubToken = configuration["GITHUB_TOKEN"];
+            
+            if (string.IsNullOrEmpty(githubToken))
+            {
+                Console.WriteLine("❌ Error: GITHUB_TOKEN not found in environment variables.");
+                Console.WriteLine("Set it using: $env:GITHUB_TOKEN=\"your-github-token-here\"");
+                Console.WriteLine("Or use user secrets: dotnet user-secrets set \"GITHUB_TOKEN\" \"your-github-token-here\"");
+                return;
+            }
+
+            // Create kernel with GitHub Models chat completion
+            var builder = Kernel.CreateBuilder();
+
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            builder.AddOpenAIChatCompletion(
+                modelId: "openai/gpt-4o",
+                apiKey: githubToken,
+                endpoint: new Uri("https://models.github.ai/inference"));
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+            // Add plugins (tools) to the kernel
+            // builder.Plugins.AddFromType<TimePlugin>();
+            // builder.Plugins.AddFromType<MathPlugin>();
+            // builder.Plugins.AddFromType<StringPlugin>();
+            
+            var kernel = builder.Build();
+
+            // Get chat completion service
+            var chatService = kernel.GetRequiredService<IChatCompletionService>();
+
+            // Create chat history with system prompt
+            var chatHistory = new ChatHistory();
+            chatHistory.AddSystemMessage("You are a professional and helpful AI assistant. Provide succinct, accurate responses.");
+            
+            // Example queries
+            var queries = new[]
+            {
+                "What time is it right now?",
+                "What is 25 * 4 + 10?",
+                "Reverse the string 'Hello World'"
+            };
+
+            Console.WriteLine("Running example queries:\n");
+
+            foreach (var query in queries)
+            {
+                Console.WriteLine($"\n📝 Query: {query}");
+                Console.WriteLine(new string('─', 50));
+                
+                chatHistory.AddUserMessage(query);
+
+                try
+                {
+                    // Enable auto function calling
+                    var executionSettings = new OpenAIPromptExecutionSettings
+                    {
+                        ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+                    };
+
+                    var result = await chatService.GetChatMessageContentAsync(
+                        chatHistory,
+                        executionSettings,
+                        kernel);
+
+                    Console.WriteLine($"\n✅ Result: {result.Content}\n");
+                    chatHistory.AddAssistantMessage(result.Content ?? string.Empty);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Error: {ex.Message}\n");
+                }
+            }
+
+            Console.WriteLine("\n🎉 Agent demo complete!");
+        }
+    }
 }
-
-Console.WriteLine("✅ GitHub token loaded successfully!");
-
-// GitHub Models endpoint
-var endpoint = configuration["GITHUB_MODELS_ENDPOINT"] ?? "https://models.github.ai/inference";
-var model = "openai/gpt-4o";
-
-Console.WriteLine($"📍 Using endpoint: {endpoint}");
-Console.WriteLine($"🔑 Token length: {githubToken.Length} characters");
-Console.WriteLine($"🤖 Model: {model}");
-
-// --- OpenAI SDK chat interaction ---
-var openAIOptions = new OpenAIClientOptions() { Endpoint = new Uri(endpoint) };
-var client = new ChatClient(model, new ApiKeyCredential(githubToken), openAIOptions);
-
-var messages = new List<ChatMessage>()
-{
-    new SystemChatMessage("You are a helpful AI assistant."),
-    new UserChatMessage("What is 25 * 4 + 10?"),
-};
-
-var requestOptions = new ChatCompletionOptions()
-{
-    Temperature = 1.0f,
-    TopP = 1.0f,
-    MaxOutputTokenCount = 1000
-};
-
-Console.WriteLine($"\n💬 User: What is 25 * 4 + 10?");
-
-try
-{
-    var response = client.CompleteChat(messages, requestOptions);
-    Console.WriteLine($"🤖 Assistant (OpenAI SDK): {response.Value.Content[0].Text}");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"\n❌ Error communicating with GitHub Models");
-    Console.WriteLine($"   Exception: {ex.GetType().Name}");
-    Console.WriteLine($"   Message: {ex.Message}");
-    Console.WriteLine();
-    Console.WriteLine("💡 Troubleshooting:");
-    Console.WriteLine("   1. Verify GitHub token is valid");
-    Console.WriteLine("   2. Check endpoint: https://models.github.ai/inference");
-    Console.WriteLine("   3. Ensure token has GitHub Models access");
-    Console.WriteLine();
-    Console.WriteLine($"   Full error: {ex}");
-}
-
-// --- Direct MathPlugin usage ---
-var mathPlugin = new MathPlugin();
-string mathExpression = "25 * 4 + 10";
-string mathResult = mathPlugin.Calculate(mathExpression);
-Console.WriteLine($"\n🧮 MathPlugin: {mathExpression} = {mathResult}");
-Console.WriteLine("\n✅ Completed OpenAI SDK chat and MathPlugin tool use demo.");
