@@ -21,6 +21,18 @@ def calculator(expression: str) -> str:
         return f"Error: {e}"
 
 
+def get_current_time(input_str: str) -> str:
+    """Returns the current date and time as a formatted string.
+    
+    Args:
+        input_str: A string parameter (required by Tool interface)
+    
+    Returns:
+        The current date and time formatted as YYYY-MM-DD HH:MM:SS
+    """
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def main():
     load_dotenv()
     token = os.getenv("GITHUB_TOKEN")
@@ -39,21 +51,29 @@ def main():
     )
     # tools available to the agent
     tools = [
-        Tool(
-            name="Calculator",
-            func=calculator,
-            description=(
-                "Evaluate mathematical expressions. Use this tool when the agent needs to "
-                "perform arithmetic or numeric calculations exactly (e.g., '25 * 4 + 10'). "
-                "Input should be a plain math expression. Returns the computed result as a string."
-            ),
-        )
+        # Tool(
+        #     name="Calculator",
+        #     func=calculator,
+        #     description=(
+        #         "Evaluate mathematical expressions. Use this tool when the agent needs to "
+        #         "perform arithmetic or numeric calculations exactly (e.g., '25 * 4 + 10'). "
+        #         "Input should be a plain math expression. Returns the computed result as a string."
+        #     ),
+        # ),
+        # Tool(
+        #     name="get_current_time",
+        #     func=get_current_time,
+        #     description=(
+        #         "Get the current date and time. Use this tool when the agent needs to know "
+        #         "what time it is right now. Returns the current date and time in YYYY-MM-DD HH:MM:SS format."
+        #     ),
+        # )
     ]
     print("✅ ChatOpenAI client initialized.")
     print("🚀 Starting app — environment loaded.")
     # simple test invocation (no tools)
     llm = chat
-    test_query = "What is 25 * 4 + 10?"
+    test_query = "Reverse the string 'Hello World'"
     print(f"💬 Query: {test_query}")
     try:
         response = llm.invoke(test_query)
